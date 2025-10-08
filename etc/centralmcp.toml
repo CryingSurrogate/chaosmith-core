@@ -1,9 +1,15 @@
 surreal_url  = "http://127.0.0.1:8000"
 surreal_user = "root"
 surreal_pass = "root"
-surreal_ns   = "chaosmith"
-surreal_db   = "wims"
+surreal_ns   = "chaos"
+surreal_db   = "core"
 
-embed_kind  = "openai"  # openai | ollama
-embed_url   = "http://192.168.1.64:1234/v1/embeddings"
-embed_model = "mxbai-embed-large"
+embed_kind      = "openai"  # openai | ollama
+embed_url       = "http://192.168.1.64:1234/v1/embeddings"
+embed_model     = "text-embedding-nomic-embed-text-v1.5@q8_0"
+embed_model_sha = "3e24342164b3d94991ba9692fdc0dd08e3fd7362e0aacc396a9a5c54a544c3b7"
+effective_dim   = 768
+transform_id    = "pca-nomic-v1.5-768to1024@3e24342164b3d94991ba9692fdc0dd08e3fd7362e0aacc396a9a5c54a544c3b7"
+tokenizer_id    = "tiktoken/cl100k_base"
+
+artifact_root = "var/lib/chaosmith/artifacts"

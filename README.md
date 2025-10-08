@@ -6,7 +6,7 @@
 
 **Chaosmith Core** is the central MCP server — a local, sovereign intelligence hub for your home-lab ecosystem.  
 It indexes workspaces, embeds documents, links code and knowledge, and serves structured context to Letta-style LLM agents.  
-No cloud, no telemetry, no stdio dependency. Just pure daemons talking over TCP.
+No cloud, no telemetry — only native daemons coordinating over stdio and local transports.
 
 ---
 
@@ -32,9 +32,38 @@ Everything runs as native daemons — no cloud dependencies, no Kubernetes, no t
 - **graph** *(planned)* — dependency and symbol relations.
 - **exec** *(planned)* — asynchronous job submission via NATS.
 
-Each tool is exposed over JSON-RPC 2.0 (TCP or WebSocket).  
-Authentication is a shared-secret HMAC session handshake.  
+Each tool is exposed over MCP.  
+Authentication and transport are defined by the orchestrator layer; see the Streamable HTTP endpoint section below.  
 All calls produce AT (Acceptance Test) evidence for deterministic runs.
+
+---
+
+## 🛰️ Streamable HTTP endpoint (PCS/INST/1.0 requirement)
+
+Chaosmith Core serves the MCP Streamable HTTP transport by default.  
+Build the root module and launch it; the server listens on `:9878` (configurable via `--listen`) and exposes `/mcp`:
+
+```bash
+go build -o chaosmith-central .
+./chaosmith-central --config etc/centralmcp.toml
+# -> StreamableHTTP listening on :9878/mcp
+```
+
+Available tools:
+
+- `index.workspace.scan` — walks a workspace, writes `directory`/`file` rows, and stores artifacts under `/var/lib/chaosmith/artifacts/<run_id>/`.
+- `index.workspace.embed` — fetches vectors via the configured executor (`embed_url`) and upserts `vector_chunk` rows.
+- `index.workspace.all` — orchestrates scan + embed in one deterministic run.
+- `term_exec`, `term_pty` — retained for direct host introspection.
+
+All three index tools return a run report (`run_id`, AT status, artifact paths, risks) so the orchestrator can enforce PCS/INST/1.0 acceptance gating.
+
+---
+
+## 🔌 Optional stdio bridge
+
+If a caller insists on stdio transport (e.g., local Letta sidecar), launch with `--stdio`.  
+Both transports can run simultaneously; stdio sessions share the same tool registry and SurrealDB connection.
 
 ---
 
@@ -47,7 +76,7 @@ All calls produce AT (Acceptance Test) evidence for deterministic runs.
 
 ---
 
-## 🧰 Quickstart (Host‑Native MCP)
+## 🧰 Quickstart (Host‑Native MCP over TCP/WS – legacy)
 
 Prereqs:
 
@@ -78,7 +107,7 @@ export WORK_ROOT=$PWD
 export DATA_ROOT=$PWD/tmpdata
 export AUTH_SECRET=change-me
 export EFFECTIVE_DIM=1024
-export TRANSFORM_ID=pca-nomic-v1.5-768to1024@yoursha
+export TRANSFORM_ID=pca-nomic-v1.5-768to1024@3e24342164b3d94991ba9692fdc0dd08e3fd7362e0aacc396a9a5c54a544c3b7
 export EMBED_MODEL=nomic-embed-text-v1.5
 export EMBED_MODEL_SHA=sha256-of-model
 export PCA_PATH=/etc/chaosmith/pca_nomic_v15_768to1024.json
@@ -99,7 +128,7 @@ $env:WORK_ROOT = (Get-Location).Path
 $env:DATA_ROOT = Join-Path $env:WORK_ROOT "tmpdata"
 $env:AUTH_SECRET = "change-me"
 $env:EFFECTIVE_DIM = "1024"
-$env:TRANSFORM_ID = "pca-nomic-v1.5-768to1024@yoursha"
+$env:TRANSFORM_ID = "pca-nomic-v1.5-768to1024@3e24342164b3d94991ba9692fdc0dd08e3fd7362e0aacc396a9a5c54a544c3b7"
 $env:EMBED_MODEL = "nomic-embed-text-v1.5"
 $env:EMBED_MODEL_SHA = "sha256-of-model"
 $env:PCA_PATH = "C:\\etc\\chaosmith\\pca_nomic_v15_768to1024.json"
