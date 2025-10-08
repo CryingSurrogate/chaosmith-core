@@ -1,0 +1,16 @@
+[Unit]
+Description=Chaosmith Central MCP (host-native)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=chaos
+Group=chaos
+ExecStart=/usr/local/bin/centralmcp --config /etc/chaosmith/centralmcp.toml
+Restart=on-failure
+WorkingDirectory=/var/lib/chaosmith
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+

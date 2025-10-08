@@ -1,0 +1,22 @@
+services:
+  surrealdb:
+    image: surrealdb/surrealdb:latest
+    container_name: chaosmith-surreal
+    # Run as root to avoid permission issues with mounted volumes across hosts
+    user: "0:0"
+    command: [
+      "start",
+      "--log","info",
+      "--bind","0.0.0.0:8000",
+      "--user","root",
+      "--pass","root",
+      # Store DB with RocksDB engine (file:// is deprecated)
+      "rocksdb:///data/db"
+    ]
+    ports:
+      - "8000:8000"
+    volumes:
+      - surreal-data:/data
+    restart: unless-stopped
+volumes:
+  surreal-data: {}

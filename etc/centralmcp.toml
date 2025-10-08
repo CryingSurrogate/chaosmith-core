@@ -1,0 +1,9 @@
+surreal_url  = "http://127.0.0.1:8000"
+surreal_user = "root"
+surreal_pass = "root"
+surreal_ns   = "chaosmith"
+surreal_db   = "wims"
+
+embed_kind  = "openai"  # openai | ollama
+embed_url   = "http://192.168.1.64:1234/v1/embeddings"
+embed_model = "mxbai-embed-large"

@@ -47,13 +47,153 @@ All calls produce AT (Acceptance Test) evidence for deterministic runs.
 
 ---
 
-## 🧰 Quick start
+## 🧰 Quickstart (Host‑Native MCP)
+
+Prereqs:
+
+- Go 1.25
+- Docker only for storage (SurrealDB), optional
+- Ports: TCP `8777`, WS `8778`
+
+Build:
 
 ```bash
-git clone https://github.com/<you>/chaosmith-core.git
+git clone https://github.com/CryingSurrogate/chaosmith-core.git
 cd chaosmith-core
-docker compose up -d --build
+go build -o bin/centralmcp ./cmd/centralmcp
 ```
+
+Start storage (optional, recommended):
+
+```bash
+cd deploy
+docker compose up -d
+cd -
+```
+
+Run the server:
+
+```bash
+export WORK_ROOT=$PWD
+export DATA_ROOT=$PWD/tmpdata
+export AUTH_SECRET=change-me
+export EFFECTIVE_DIM=1024
+export TRANSFORM_ID=pca-nomic-v1.5-768to1024@yoursha
+export EMBED_MODEL=nomic-embed-text-v1.5
+export EMBED_MODEL_SHA=sha256-of-model
+export PCA_PATH=/etc/chaosmith/pca_nomic_v15_768to1024.json
+export TOKENIZER_ID=tiktoken/cl100k_base
+mkdir -p "$DATA_ROOT"
+./bin/centralmcp --config etc/centralmcp.toml
+```
+
+Windows (PowerShell):
+
+```powershell
+# From repo root
+go build -o bin\centralmcp.exe .\cmd\centralmcp
+
+Push-Location deploy; docker compose up -d; Pop-Location
+
+$env:WORK_ROOT = (Get-Location).Path
+$env:DATA_ROOT = Join-Path $env:WORK_ROOT "tmpdata"
+$env:AUTH_SECRET = "change-me"
+$env:EFFECTIVE_DIM = "1024"
+$env:TRANSFORM_ID = "pca-nomic-v1.5-768to1024@yoursha"
+$env:EMBED_MODEL = "nomic-embed-text-v1.5"
+$env:EMBED_MODEL_SHA = "sha256-of-model"
+$env:PCA_PATH = "C:\\etc\\chaosmith\\pca_nomic_v15_768to1024.json"
+$env:TOKENIZER_ID = "tiktoken/cl100k_base"
+New-Item -ItemType Directory -Force -Path $env:DATA_ROOT | Out-Null
+
+.\bin\centralmcp.exe --config etc\centralmcp.toml
+```
+
+Endpoints:
+
+- TCP JSON‑RPC: `0.0.0.0:8777`
+- WebSocket JSON‑RPC: `ws://0.0.0.0:8778/mcp`
+
+Authenticate first via `mcp.auth` with `{"secret":"change-me"}`.
+
+Minimal client config (WebSocket):
+
+```json
+{ "mcpServers": { "centralmcp": { "transport": { "type": "websocket", "url": "ws://127.0.0.1:8778/mcp" } } } }
+```
+
+Smoke test (optional):
+
+```bash
+go build -o bin/e2echeck ./cmd/e2echeck
+go build -o bin/e2echeckws ./cmd/e2echeckws
+./bin/e2echeck      # TCP
+./bin/e2echeckws    # WS
+```
+
+Systemd (Linux):
+
+1. Install binary and config
+   - `/usr/local/bin/centralmcp`
+   - `/etc/chaosmith/centralmcp.toml`
+   - Data dir: `/var/lib/chaosmith`
+2. Unit file: `systemd/centralmcp.service`
+3. `sudo systemctl enable --now centralmcp`
+
+### Managing many workspaces
+
+- Configure an allowlist of workspace roots with `WORK_ROOTS` (comma‑separated) or `work_roots` in `etc/centralmcp.toml`.
+- Tools accept per‑call paths:
+  - `index.scan { root: "/path/to/workspace" }` computes a stable `workspace_id` and scans under that root.
+  - `terminal.exec { cwd: "/path/to/workspace", ... }` runs commands inside the given workspace.
+  - `tty.open { cwd: "/path/to/workspace", ... }` starts an interactive shell for that workspace.
+- Evidence files are stored under `${DATA_ROOT}/artifacts/<workspace_id>/<run_id>/`.
+
+Registering workspaces (recommended):
+
+- Register a workspace once and use `workspace_id` everywhere:
+
+```jsonc
+// JSON-RPC
+{ "method": "workspace.register", "params": { "root": "/projects/foo", "name": "foo" } }
+// -> { "workspace_id": "...", "root": "/projects/foo" }
+
+// Use the id in tools
+{ "method": "index.scan",  "params": { "workspace_id": "..." } }
+{ "method": "terminal.exec", "params": { "workspace_id": "...", "argv": ["bash","-lc","printf x"], "capture": true } }
+{ "method": "tty.open",      "params": { "workspace_id": "..." } }
+```
+
+You can still pass `cwd`/`root` directly, but `workspace_id` ensures consistent attribution and storage across runs.
+
+### SurrealDB schema init
+
+- Shell (Linux/macOS): `./scripts/init_surreal.sh`
+- PowerShell (Windows): `./scripts/init_surreal.ps1`
+
+Env/params:
+- URL: `SURREAL_URL` or `-SurrealUrl` (default `http://127.0.0.1:8000`)
+- Auth: `SURREAL_USER`/`SURREAL_PASS`
+- NS/DB: `SURREAL_NS`/`SURREAL_DB`
+
+Vector index:
+- After you know the embedding dimension (see `index.index` dim), you can enable a vector index by editing `etc/schema.surql`:
+  - `DEFINE INDEX doc_vector ON TABLE document FIELDS vector VECTOR DIM <your-dim> HNSW METRIC COSINE;`
+  - Re-run the init script (idempotent for defines).
+
+### PCA transform builder
+
+Generate the PCA JSON required for CHAOS_EMB/1.0:
+
+```bash
+make build-pca
+cat scripts/sample_corpus.ndjson | ./bin/build-pca \
+  --endpoint http://192.168.1.64:1234/v1/embeddings \
+  --model nomic-embed-text-v1.5 \
+  --out /etc/chaosmith/pca_nomic_v15_768to1024.json
+# note printed transform_id and set TRANSFORM_ID env/config
+```
+
 
 ---
 
@@ -70,4 +210,3 @@ you must make the complete corresponding source available to users.
 
 Commercial or closed-source use without an explicit license agreement
 from the author is prohibited.
-

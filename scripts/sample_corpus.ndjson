@@ -1,0 +1,4 @@
+{"text":"MCP registry notes and tool surfaces..."}
+{"text":"func ServeTCP(ctx context.Context, addr string, reg *core.Registry) error {...}"}
+{"text":"SurrealDB vector_chunk fields and HNSW params..."}
+
