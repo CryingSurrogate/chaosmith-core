@@ -1,5 +1,9 @@
 # Chaosmith Core
 
+![vibe-coding](https://img.shields.io/badge/vibe_coding-heavy-orange)
+![license](https://img.shields.io/badge/license-AGPLv3-blue)
+![self_hosted](https://img.shields.io/badge/self--hosted-only-black)
+
 **Chaosmith Core** is the central MCP server — a local, sovereign intelligence hub for your home-lab ecosystem.  
 It indexes workspaces, embeds documents, links code and knowledge, and serves structured context to Letta-style LLM agents.  
 No cloud, no telemetry, no stdio dependency. Just pure daemons talking over TCP.
