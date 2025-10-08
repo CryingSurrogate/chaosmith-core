@@ -49,6 +49,7 @@ All calls produce AT (Acceptance Test) evidence for deterministic runs.
 git clone https://github.com/<you>/chaosmith-core.git
 cd chaosmith-core
 docker compose up -d --build
+```
 
 ---
 
