@@ -49,3 +49,20 @@ All calls produce AT (Acceptance Test) evidence for deterministic runs.
 git clone https://github.com/<you>/chaosmith-core.git
 cd chaosmith-core
 docker compose up -d --build
+
+---
+
+## 🧾 License
+
+Chaosmith Core is licensed under the **GNU Affero General Public License v3.0**.
+
+You are free to use, modify, and distribute this software
+for any purpose, provided that all derivative works remain open-source
+under the same license.
+
+If you deploy a modified version of Chaosmith Core as a public service,
+you must make the complete corresponding source available to users.
+
+Commercial or closed-source use without an explicit license agreement
+from the author is prohibited.
+
