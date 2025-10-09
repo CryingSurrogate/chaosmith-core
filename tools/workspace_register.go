@@ -7,6 +7,7 @@ import (
 
 	"github.com/CryingSurrogate/chaosmith-core/internal/surreal"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	surrealmodels "github.com/surrealdb/surrealdb.go/pkg/models"
 )
 
 type WorkspaceRegister struct {
@@ -31,24 +32,26 @@ func (w *WorkspaceRegister) Register(ctx context.Context, _ *mcp.CallToolRequest
 	if strings.TrimSpace(input.NodeID) == "" {
 		return nil, WorkspaceRegisterOutput{}, fmt.Errorf("nodeId is required (schema asserts workspace.node != NONE)")
 	}
-	ws := fmt.Sprintf("type::thing('workspace', '%s')", input.WorkspaceID)
-	node := fmt.Sprintf("type::thing('node', '%s')", input.NodeID)
-	var stmts []string
-	// Ensure node exists minimally (name is required by schema)
-	stmts = append(stmts, fmt.Sprintf("UPSERT %s SET name = %s;", node, sLit(input.NodeID)))
-	// Create or update workspace with node set
-	stmts = append(stmts, fmt.Sprintf("UPSERT %s SET path = %s, node = %s, vcs = '', rev = '', content_sha = '';", ws, sLit(input.Path), node))
-	// Relation
-	stmts = append(stmts, fmt.Sprintf("RELATE (%s)->on_node->(%s);", ws, node))
-	if err := w.DB.Exec(ctx, stmts); err != nil {
-		return nil, WorkspaceRegisterOutput{}, err
+	path := strings.TrimSpace(input.Path)
+	if path == "" {
+		return nil, WorkspaceRegisterOutput{}, fmt.Errorf("path must not be blank")
 	}
-	return nil, WorkspaceRegisterOutput{Workspace: input.WorkspaceID, Node: input.NodeID}, nil
-}
 
-func sLit(s string) string {
-	// Escape backslashes and single quotes for Surreal string literal
-	s = strings.ReplaceAll(s, "\\", "\\\\")
-	s = strings.ReplaceAll(s, "'", "\\'")
-	return "'" + s + "'"
+	data := map[string]any{
+		"path":        path,
+		"node":        surrealmodels.NewRecordID("node", strings.TrimSpace(input.NodeID)),
+		"vcs":         "",
+		"rev":         "",
+		"content_sha": "",
+	}
+
+	if err := w.DB.UpsertRecord(ctx, "workspace", input.WorkspaceID, data); err != nil {
+		return nil, WorkspaceRegisterOutput{}, fmt.Errorf("upsert workspace: %w", err)
+	}
+
+	if err := w.DB.Relate(ctx, "workspace", input.WorkspaceID, "on_node", "node", input.NodeID, nil); err != nil {
+		return nil, WorkspaceRegisterOutput{}, fmt.Errorf("relate workspace to node: %w", err)
+	}
+
+	return nil, WorkspaceRegisterOutput{Workspace: input.WorkspaceID, Node: input.NodeID}, nil
 }

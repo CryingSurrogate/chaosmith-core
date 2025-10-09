@@ -47,6 +47,7 @@ type Indexer struct {
 	cfg     *config.Config
 	surreal *surreal.Client
 	embed   *embedder.Client
+	chunker *tokenChunker
 }
 
 // New builds an Indexer from configuration and Surreal client.
@@ -58,10 +59,15 @@ func New(cfg *config.Config, surrealClient *surreal.Client) (*Indexer, error) {
 		return nil, fmt.Errorf("surreal client is required")
 	}
 	embedClient := embedder.New(cfg.EmbedURL, cfg.EmbedModel)
+	chunker, err := newTokenChunker(cfg.TokenizerID)
+	if err != nil {
+		return nil, fmt.Errorf("tokenizer init: %w", err)
+	}
 	return &Indexer{
 		cfg:     cfg,
 		surreal: surrealClient,
 		embed:   embedClient,
+		chunker: chunker,
 	}, nil
 }
 

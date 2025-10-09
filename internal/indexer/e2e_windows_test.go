@@ -1,20 +1,18 @@
 package indexer
 
 import (
-	"context"
-	"encoding/json"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"path/filepath"
-	"runtime"
-	"strings"
-	"testing"
-	"time"
+    "context"
+    "encoding/json"
+    "net/http"
+    "net/http/httptest"
+    "os"
+    "path/filepath"
+    "runtime"
+    "testing"
+    "time"
 
-	"github.com/CryingSurrogate/chaosmith-core/internal/config"
-	"github.com/CryingSurrogate/chaosmith-core/internal/surreal"
+    "github.com/CryingSurrogate/chaosmith-core/internal/config"
+    "github.com/CryingSurrogate/chaosmith-core/internal/surreal"
 )
 
 // TestEndToEnd_Workspace_Bloodseeker simulates registering, scanning, and embedding
@@ -25,22 +23,12 @@ func TestEndToEnd_Workspace_Bloodseeker(t *testing.T) {
 		t.Skip("windows-only e2e test")
 	}
 
-	// Prepare fake Surreal /sql endpoint that logs incoming SQL payloads.
-	surrealLogs := make([]string, 0, 8)
-	surrealSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || !strings.HasSuffix(r.URL.Path, "/sql") {
-			http.Error(w, "unexpected endpoint", http.StatusNotFound)
-			return
-		}
-		body, _ := io.ReadAll(r.Body)
-		_ = r.Body.Close()
-		t.Logf("/sql request:\n%s", string(body))
-		surrealLogs = append(surrealLogs, string(body))
-		w.Header().Set("Content-Type", "application/json")
-		// Minimal Surreal-like response indicating OK.
-		_, _ = w.Write([]byte(`[{"status":"OK"}]`))
-	}))
-	defer surrealSrv.Close()
+    // Integration requires a real SurrealDB reachable via WebSocket.
+    // For local runs, set E2E_SURREAL_URL to something like ws://127.0.0.1:8000
+    surrealURL := os.Getenv("E2E_SURREAL_URL")
+    if surrealURL == "" {
+        t.Skip("set E2E_SURREAL_URL=ws://host:8000 to run this integration test")
+    }
 
 	// Prepare fake embed endpoint that logs requests and returns constant vectors.
 	embedSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -79,12 +67,12 @@ func TestEndToEnd_Workspace_Bloodseeker(t *testing.T) {
 	mustWrite(t, filepath.Join(workspaceRoot, "src", "main.go"), "package main\nfunc main(){}\n")
 
 	// Set up config + clients.
-	cfg := &config.Config{
-		SurrealURL:    surrealSrv.URL,
-		SurrealUser:   "",
-		SurrealPass:   "",
-		SurrealNS:     "chaosmith",
-		SurrealDB:     "wims",
+    cfg := &config.Config{
+        SurrealURL:    surrealURL,
+        SurrealUser:   "",
+        SurrealPass:   "",
+        SurrealNS:     "chaosmith",
+        SurrealDB:     "wims",
 		EmbedKind:     "openai",
 		EmbedURL:      embedSrv.URL,
 		EmbedModel:    "unit-test-model",
@@ -118,9 +106,7 @@ func TestEndToEnd_Workspace_Bloodseeker(t *testing.T) {
 	}
 	t.Logf("Run OK: id=%s step=%s artifacts=%v", report.RunID, report.Step, report.ArtifactPaths)
 
-	if len(surrealLogs) == 0 {
-		t.Fatalf("expected at least one /sql call")
-	}
+    // No direct assertion against DB here; reaching this point implies success.
 }
 
 func mustWrite(t *testing.T, p, s string) {

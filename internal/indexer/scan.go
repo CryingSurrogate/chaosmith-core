@@ -6,13 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/CryingSurrogate/chaosmith-core/internal/runctx"
+	surrealmodels "github.com/surrealdb/surrealdb.go/pkg/models"
 	"github.com/zeebo/blake3"
 )
 
@@ -38,17 +38,14 @@ func (ix *Indexer) performScan(ctx context.Context, run *runctx.Run) (*scanResul
 	root := run.WorkspaceRoot
 	wsID := run.WorkspaceID
 
-	// Ensure the workspace record exists so relations don't dangle.
-	{
-		wsRecord := record("workspace", wsID)
-		// Do not set node here; schema asserts node != NONE. Use workspace.register to establish node.
-		stmt := fmt.Sprintf("UPSERT %s SET path = %s, vcs = '', rev = '', content_sha = '';",
-			wsRecord,
-			surrealStringLiteral(root),
-		)
-		if err := ix.surreal.Exec(ctx, []string{stmt}); err != nil {
-			return &scanResult{}, fmt.Errorf("surreal upsert workspace %s: %w", wsID, err)
-		}
+	// Ensure the workspace record has current metadata without clearing its node relation.
+	if err := ix.surreal.MergeRecord(ctx, "workspace", wsID, map[string]any{
+		"path":        root,
+		"vcs":         "",
+		"rev":         "",
+		"content_sha": "",
+	}); err != nil {
+		return &scanResult{}, fmt.Errorf("surreal merge workspace %s: %w", wsID, err)
 	}
 
 	var dirs []dirMeta
@@ -104,10 +101,45 @@ func (ix *Indexer) performScan(ctx context.Context, run *runctx.Run) (*scanResul
 		return &scanResult{}, err
 	}
 
-	stmts := buildScanStatements(wsID, dirs, files)
-	if err := ix.surreal.Exec(ctx, stmts); err != nil {
-		log.Printf("index.scan surreal exec failed (workspace=%s): %v", wsID, err)
-		return &scanResult{}, fmt.Errorf("surreal exec (scan) workspace %s: %w", wsID, err)
+	// Upsert directories and relations using SDK helpers
+	for _, dir := range dirs {
+		dirRecID := dirID(wsID, dir.RelPath)
+		if err := ix.surreal.UpsertRecord(ctx, "directory", dirRecID, map[string]any{
+			"ws":      surrealmodels.NewRecordID("workspace", wsID),
+			"relpath": dir.RelPath,
+			"sha":     dir.Hash,
+		}); err != nil {
+			return &scanResult{}, fmt.Errorf("upsert directory %s: %w", dir.RelPath, err)
+		}
+		if err := ix.surreal.Relate(ctx, "workspace", wsID, "ws_contains_dir", "directory", dirRecID, nil); err != nil {
+			return &scanResult{}, fmt.Errorf("relate workspace->dir %s: %w", dir.RelPath, err)
+		}
+		if parent := parentDirRel(dir.RelPath); parent != "" || dir.RelPath != "" {
+			parentRecID := dirID(wsID, parent)
+			if err := ix.surreal.Relate(ctx, "directory", parentRecID, "dir_contains_dir", "directory", dirRecID, nil); err != nil {
+				return &scanResult{}, fmt.Errorf("relate parent->dir %s: %w", dir.RelPath, err)
+			}
+		}
+	}
+
+	// Upsert files and relate to parent directory
+	for _, file := range files {
+		fileRecID := fileID(wsID, file.RelPath)
+		if err := ix.surreal.UpsertRecord(ctx, "file", fileRecID, map[string]any{
+			"ws":      surrealmodels.NewRecordID("workspace", wsID),
+			"relpath": file.RelPath,
+			"lang":    file.Lang,
+			"size":    file.Size,
+			"mtime":   file.MTime,
+			"sha":     file.Hash,
+		}); err != nil {
+			return &scanResult{}, fmt.Errorf("upsert file %s: %w", file.RelPath, err)
+		}
+		dirRel := parentDirRel(file.RelPath)
+		dirRecID := dirID(wsID, dirRel)
+		if err := ix.surreal.Relate(ctx, "directory", dirRecID, "dir_contains_file", "file", fileRecID, nil); err != nil {
+			return &scanResult{}, fmt.Errorf("relate dir->file %s: %w", file.RelPath, err)
+		}
 	}
 
 	var artifacts []string
@@ -171,53 +203,7 @@ func (ix *Indexer) writeNDJSON(dir, name string, data any) (string, error) {
 	return path, nil
 }
 
-func buildScanStatements(workspaceID string, dirs []dirMeta, files []fileMeta) []string {
-	wsRecord := record("workspace", workspaceID)
-	wsThing := surrealThing("workspace", workspaceID)
-	wsEndpoint := relationEndpoint(wsRecord)
-	var stmts []string
-
-	for _, dir := range dirs {
-		dirRecord := record("directory", dirID(workspaceID, dir.RelPath))
-		dirEndpoint := relationEndpoint(dirRecord)
-		stmt := fmt.Sprintf("UPSERT %s SET ws = %s, relpath = %s, sha = %s;",
-			dirRecord,
-			wsThing,
-			surrealStringLiteral(dir.RelPath),
-			surrealStringLiteral(dir.Hash),
-		)
-		stmts = append(stmts, stmt)
-		stmts = append(stmts, fmt.Sprintf("RELATE %s->ws_contains_dir->%s;", wsEndpoint, dirEndpoint))
-
-		if parent := parentDirRel(dir.RelPath); parent != "" || dir.RelPath != "" {
-			parentRecord := record("directory", dirID(workspaceID, parent))
-			parentEndpoint := relationEndpoint(parentRecord)
-			stmts = append(stmts, fmt.Sprintf("RELATE %s->dir_contains_dir->%s;", parentEndpoint, dirEndpoint))
-		}
-	}
-
-	for _, file := range files {
-		fileRecord := record("file", fileID(workspaceID, file.RelPath))
-		fileEndpoint := relationEndpoint(fileRecord)
-		stmt := fmt.Sprintf("UPSERT %s SET ws = %s, relpath = %s, lang = %s, size = %d, mtime = %s, sha = %s;",
-			fileRecord,
-			wsThing,
-			surrealStringLiteral(file.RelPath),
-			surrealStringLiteral(file.Lang),
-			file.Size,
-			surrealDatetime(file.MTime),
-			surrealStringLiteral(file.Hash),
-		)
-		stmts = append(stmts, stmt)
-
-		dirRel := parentDirRel(file.RelPath)
-		dirRecord := record("directory", dirID(workspaceID, dirRel))
-		dirEndpoint := relationEndpoint(dirRecord)
-		stmts = append(stmts, fmt.Sprintf("RELATE %s->dir_contains_file->%s;", dirEndpoint, fileEndpoint))
-	}
-
-	return stmts
-}
+// buildScanStatements is replaced by direct SDK calls via surreal.Client
 
 func parentDirRel(rel string) string {
 	if rel == "" {

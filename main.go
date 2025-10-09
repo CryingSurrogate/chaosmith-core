@@ -44,6 +44,7 @@ func main() {
 
 	server := mcp.NewServer(&mcp.Implementation{Name: "chaosmith-central", Version: "v0.2.0"}, nil)
 	l1 := &tools.L1IndexerTools{Engine: indexEngine}
+	nodereg := &tools.NodeRegister{DB: surrealClient}
 	wsreg := &tools.WorkspaceRegister{DB: surrealClient}
 
 	mcp.AddTool(server, &mcp.Tool{
@@ -62,8 +63,13 @@ func main() {
 	}, l1.All)
 
 	mcp.AddTool(server, &mcp.Tool{
+		Name:        "node.register",
+		Description: "Upsert a node record with optional metadata so workspaces can target it",
+	}, nodereg.Register)
+
+	mcp.AddTool(server, &mcp.Tool{
 		Name:        "workspace.register",
-		Description: "Upsert a workspace (and optional node) so scan/embed have a target.",
+		Description: "Upsert a workspace bound to an existing node so scan/embed have a target.",
 	}, wsreg.Register)
 
 	mcp.AddTool(server, &mcp.Tool{

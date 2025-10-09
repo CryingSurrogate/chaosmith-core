@@ -10,7 +10,7 @@ DEFINE FIELD name      ON den TYPE string;
 DEFINE FIELD address   ON den TYPE string;
 DEFINE FIELD geo       ON den TYPE object;                 -- {lat,lon,alt?}
 DEFINE FIELD desc      ON den TYPE string;
-DEFINE FIELD tags      ON den TYPE array;
+DEFINE FIELD tags      ON den TYPE array<string>;
 DEFINE FIELD inventory ON den TYPE object;                 -- {nodes,iot,agents,tasks}
 DEFINE INDEX uniq_den ON TABLE den COLUMNS code UNIQUE;
 
@@ -21,7 +21,7 @@ DEFINE FIELD kind   ON node TYPE string;                   -- "pc","headless","a
 DEFINE FIELD os     ON node TYPE string;
 DEFINE FIELD cpu    ON node TYPE string;
 DEFINE FIELD ram_gb ON node TYPE int;
-DEFINE FIELD labels ON node TYPE array;
+DEFINE FIELD labels ON node TYPE array<string>;
 DEFINE INDEX uniq_node ON TABLE node COLUMNS name UNIQUE;
 
 -- ==== NODE FILES (docs/config on a node) ====
@@ -41,7 +41,7 @@ DEFINE FIELD file       ON api_ref TYPE option<record<node_file>>; -- iff ref_ty
 DEFINE FIELD title      ON api_ref TYPE string;
 DEFINE FIELD version    ON api_ref TYPE string;
 DEFINE FIELD updated_at ON api_ref TYPE datetime;
-DEFINE FIELD tags       ON api_ref TYPE array;
+DEFINE FIELD tags       ON api_ref TYPE array<string>..;
 
 -- ==== IoT DEVICES ====
 DEFINE TABLE iot_device SCHEMAFULL;
@@ -132,7 +132,7 @@ DEFINE FIELD model_sha     ON vector_chunk TYPE string;           -- hash of mod
 DEFINE FIELD native_dim    ON vector_chunk TYPE int;
 DEFINE FIELD effective_dim ON vector_chunk TYPE int;              -- after PCA/etc
 DEFINE FIELD transform_id  ON vector_chunk TYPE string;           -- "none" | "pca-256@<hash>"
-DEFINE FIELD vector        ON vector_chunk TYPE array;            -- array<float>
+DEFINE FIELD vector        ON vector_chunk TYPE array<float>;            -- array<float>
 DEFINE FIELD ts            ON vector_chunk TYPE datetime;
 DEFINE INDEX uniq_vc ON TABLE vector_chunk
   COLUMNS ws, file, symbol, granularity, start, end, model UNIQUE;
@@ -142,7 +142,7 @@ DEFINE TABLE workspace_vector SCHEMAFULL;
 DEFINE FIELD ws      ON workspace_vector TYPE record<workspace>;
 DEFINE FIELD kind    ON workspace_vector TYPE string;             -- "centroid@symbol","centroid@file"
 DEFINE FIELD model   ON workspace_vector TYPE record<vector_model>;
-DEFINE FIELD vector  ON workspace_vector TYPE array;
+DEFINE FIELD vector  ON workspace_vector TYPE array<float>;
 DEFINE FIELD sample  ON workspace_vector TYPE int;                -- contributing chunks
 DEFINE FIELD ts      ON workspace_vector TYPE datetime;
 DEFINE INDEX uniq_wsv ON TABLE workspace_vector COLUMNS ws, kind, model UNIQUE;

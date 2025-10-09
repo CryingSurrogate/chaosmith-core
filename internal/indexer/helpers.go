@@ -2,6 +2,7 @@ package indexer
 
 import (
 	"encoding/hex"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"time"
@@ -29,8 +30,8 @@ func dirID(workspaceID, relpath string) string {
 	return hexID("dir", workspaceID, relpath)
 }
 
-func vectorChunkID(workspaceID, fileID string, granularity string) string {
-	return hexID("vec", workspaceID, fileID, granularity)
+func vectorChunkID(workspaceID, fileID string, granularity string, index int) string {
+	return hexID("vec", workspaceID, fileID, fmt.Sprintf("%s#%06d", granularity, index))
 }
 
 func hexID(prefix string, parts ...string) string {
