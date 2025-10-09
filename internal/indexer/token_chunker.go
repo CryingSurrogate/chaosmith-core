@@ -7,7 +7,7 @@ import (
 	tiktoken "github.com/pkoukk/tiktoken-go"
 )
 
-const maxTokensPerChunk = 2048
+const maxTokensPerChunk = 768
 
 type tokenChunk struct {
 	Text       string

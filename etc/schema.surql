@@ -122,7 +122,8 @@ DEFINE TABLE vector_chunk SCHEMAFULL;
 DEFINE FIELD ws            ON vector_chunk TYPE record<workspace>;
 DEFINE FIELD file          ON vector_chunk TYPE record<file>;
 DEFINE FIELD symbol        ON vector_chunk TYPE option<record<symbol>>;
-DEFINE FIELD granularity   ON vector_chunk TYPE string;           -- "symbol" | "file" | "span"
+DEFINE FIELD granularity   ON vector_chunk TYPE string;           -- "symbol" | "file" | "span" | "file_chunk"
+DEFINE FIELD chunk_index   ON vector_chunk TYPE option<int>;
 DEFINE FIELD start         ON vector_chunk TYPE option<int>;
 DEFINE FIELD end           ON vector_chunk TYPE option<int>;
 DEFINE FIELD token_count   ON vector_chunk TYPE option<int>;
