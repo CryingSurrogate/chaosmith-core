@@ -58,67 +58,67 @@ func main() {
 	wsreg := &tools.WorkspaceRegister{DB: surrealClient}
 
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "index.workspace.scan",
+		Name:        "index_workspace_scan",
 		Description: "PCS/1.3-native L1 scan: enumerate workspace directories/files and commit to SurrealDB.",
 	}, l1.Scan)
 
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "index.workspace.embed",
+		Name:        "index_workspace_embed",
 		Description: "PCS/1.3-native L1 embedding: call local embedding executor and store vector_chunk rows.",
 	}, l1.Embed)
 
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "index.workspace.all",
+		Name:        "index_workspace_all",
 		Description: "Run full L1 pipeline (scan + embed) with UDCS-compliant reporting.",
 	}, l1.All)
 
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "node.register",
+		Name:        "node_register",
 		Description: "Upsert a node record with optional metadata so workspaces can target it",
 	}, nodereg.Register)
 
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "node.list",
+		Name:        "node_list",
 		Description: "List all registered nodes with metadata",
 	}, listNodes.List)
 
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "workspace.list",
+		Name:        "workspace_list",
 		Description: "List all registered workspaces",
 	}, listWorkspaces.List)
 
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "workspace.tree",
+		Name:        "workspace_tree",
 		Description: "Return directory and file tree for a workspace",
 	}, tree.List)
 
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "workspace.find_file",
+		Name:        "workspace_find_file",
 		Description: "Find files in a workspace by exact/partial path",
 	}, findFile.Search)
 
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "workspace.search_text",
+		Name:        "workspace_search_text",
 		Description: "Find exact text within workspace files",
 	}, textSearch.Search)
 
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "file.search_text",
+		Name:        "file_search_text",
 		Description: "Find exact text within a specific workspace file",
 	}, fileTextSearch.Search)
 
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "file.vector_search",
+		Name:        "file_vector_search",
 		Description: "Vector similarity search within a workspace file",
 	}, fileVector.Search)
 
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "workspace.vector_search",
+		Name:        "workspace_vector_search",
 		Description: "Vector similarity search across a workspace",
 	}, wsVector.Search)
 
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "workspace.register",
+		Name:        "workspace_register",
 		Description: "Upsert a workspace bound to an existing node so scan/embed have a target.",
 	}, wsreg.Register)
 

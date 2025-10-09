@@ -16,6 +16,10 @@ type ListNodesOutput struct {
 	Nodes []NodeSummary `json:"nodes" jsonschema:"registered nodes"`
 }
 
+type ListNodesInput struct {
+	Kind string `json:"kind,omitempty" jsonschema:"OPTIONAL, NOT IMPLEMENTED node kind (pc, vm, etc.)"`
+}
+
 type NodeSummary struct {
 	ID     string   `json:"id" jsonschema:"node record id"`
 	Name   string   `json:"name" jsonschema:"display name"`
@@ -26,7 +30,7 @@ type NodeSummary struct {
 	Labels []string `json:"labels,omitempty" jsonschema:"free-form labels"`
 }
 
-func (l *ListNodes) List(ctx context.Context, _ *mcp.CallToolRequest, _ any) (*mcp.CallToolResult, ListNodesOutput, error) {
+func (l *ListNodes) List(ctx context.Context, _ *mcp.CallToolRequest, input ListNodesInput) (*mcp.CallToolResult, ListNodesOutput, error) {
 	if l == nil || l.DB == nil {
 		return nil, ListNodesOutput{}, fmt.Errorf("surreal client not configured")
 	}
@@ -39,6 +43,10 @@ func (l *ListNodes) List(ctx context.Context, _ *mcp.CallToolRequest, _ any) (*m
 		CPU    string   `json:"cpu"`
 		RAMGB  int      `json:"ram_gb"`
 		Labels []string `json:"labels"`
+	}
+
+	if input.Kind != "" {
+		println(fmt.Sprintf("They wanted a kind of... %s ?", input.Kind))
 	}
 
 	const q = `
