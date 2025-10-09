@@ -130,7 +130,7 @@ $env:AUTH_SECRET = "change-me"
 $env:EFFECTIVE_DIM = "1024"
 $env:TRANSFORM_ID = "pca-nomic-v1.5-768to1024@3e24342164b3d94991ba9692fdc0dd08e3fd7362e0aacc396a9a5c54a544c3b7"
 $env:EMBED_MODEL = "nomic-embed-text-v1.5"
-$env:EMBED_MODEL_SHA = "sha256-of-model"
+$env:EMBED_MODEL_SHA = "3e24342164b3d94991ba9692fdc0dd08e3fd7362e0aacc396a9a5c54a544c3b7"
 $env:PCA_PATH = "C:\\etc\\chaosmith\\pca_nomic_v15_768to1024.json"
 $env:TOKENIZER_ID = "tiktoken/cl100k_base"
 New-Item -ItemType Directory -Force -Path $env:DATA_ROOT | Out-Null

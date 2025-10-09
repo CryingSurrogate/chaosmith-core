@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/CryingSurrogate/chaosmith-core/internal/config"
+	"github.com/CryingSurrogate/chaosmith-core/internal/embedder"
 	"github.com/CryingSurrogate/chaosmith-core/internal/indexer"
 	"github.com/CryingSurrogate/chaosmith-core/internal/surreal"
 	"github.com/CryingSurrogate/chaosmith-core/tools"
@@ -41,10 +42,19 @@ func main() {
 	if err != nil {
 		log.Fatalf("indexer init: %v", err)
 	}
+	embedClient := embedder.New(cfg.EmbedURL, cfg.EmbedModel)
 
 	server := mcp.NewServer(&mcp.Implementation{Name: "chaosmith-central", Version: "v0.2.0"}, nil)
 	l1 := &tools.L1IndexerTools{Engine: indexEngine}
+	listNodes := &tools.ListNodes{DB: surrealClient}
+	listWorkspaces := &tools.ListWorkspaces{DB: surrealClient}
 	nodereg := &tools.NodeRegister{DB: surrealClient}
+	fileVector := &tools.FileVectorSearch{DB: surrealClient, Embedder: embedClient}
+	findFile := &tools.FindFile{DB: surrealClient}
+	fileTextSearch := &tools.FileSearchText{DB: surrealClient}
+	textSearch := &tools.WorkspaceSearchText{DB: surrealClient}
+	tree := &tools.WorkspaceTree{DB: surrealClient}
+	wsVector := &tools.WorkspaceVectorSearch{DB: surrealClient, Embedder: embedClient}
 	wsreg := &tools.WorkspaceRegister{DB: surrealClient}
 
 	mcp.AddTool(server, &mcp.Tool{
@@ -66,6 +76,46 @@ func main() {
 		Name:        "node.register",
 		Description: "Upsert a node record with optional metadata so workspaces can target it",
 	}, nodereg.Register)
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "node.list",
+		Description: "List all registered nodes with metadata",
+	}, listNodes.List)
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "workspace.list",
+		Description: "List all registered workspaces",
+	}, listWorkspaces.List)
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "workspace.tree",
+		Description: "Return directory and file tree for a workspace",
+	}, tree.List)
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "workspace.find_file",
+		Description: "Find files in a workspace by exact/partial path",
+	}, findFile.Search)
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "workspace.search_text",
+		Description: "Find exact text within workspace files",
+	}, textSearch.Search)
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "file.search_text",
+		Description: "Find exact text within a specific workspace file",
+	}, fileTextSearch.Search)
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "file.vector_search",
+		Description: "Vector similarity search within a workspace file",
+	}, fileVector.Search)
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "workspace.vector_search",
+		Description: "Vector similarity search across a workspace",
+	}, wsVector.Search)
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "workspace.register",

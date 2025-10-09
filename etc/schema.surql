@@ -182,6 +182,19 @@ DEFINE TABLE symbol_has_vector    TYPE RELATION FROM symbol    TO vector_chunk;
 DEFINE TABLE file_has_vector      TYPE RELATION FROM file      TO vector_chunk;
 DEFINE TABLE workspace_has_vector TYPE RELATION FROM workspace TO workspace_vector;
 
+-- Vector indexes
+-- KNN for chunk-level search
+DEFINE INDEX idx_vector_chunk_hnsw
+  ON TABLE vector_chunk
+  FIELDS vector
+  HNSW DIMENSION 768 DIST COSINE;
+
+-- For centroid/fingerprint search
+DEFINE INDEX idx_workspace_vector_hnsw
+  ON TABLE workspace_vector
+  FIELDS vector
+  HNSW DIMENSION 768 DIST COSINE;
+
 -- =========================================================
 -- End of schema
 -- =========================================================
