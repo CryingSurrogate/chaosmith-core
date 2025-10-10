@@ -56,6 +56,7 @@ func main() {
 	tree := &tools.WorkspaceTree{DB: surrealClient}
 	wsVector := &tools.WorkspaceVectorSearch{DB: surrealClient, Embedder: embedClient}
 	wsreg := &tools.WorkspaceRegister{DB: surrealClient}
+	reader := &tools.ReadWorkspaceFile{DB: surrealClient}
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "index_workspace_scan",
@@ -121,6 +122,11 @@ func main() {
 		Name:        "workspace_register",
 		Description: "Upsert a workspace bound to an existing node so scan/embed have a target.",
 	}, wsreg.Register)
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "read_workspace_file",
+		Description: "Read a file span from a workspace with optional hex encoding.",
+	}, reader.Read)
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "term_exec",

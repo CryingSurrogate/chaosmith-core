@@ -51,9 +51,19 @@ go build -o bin/chaosmith-mcp .
 
 ### Available Tools
 
-* `index.workspace.scan` — walk workspace, store directory/file rows, emit artifacts under `/var/lib/chaosmith/artifacts/<run_id>/`.
-* `index.workspace.embed` — chunk and embed text, upsert `vector_chunk` rows.
-* `index.workspace.all` — combine scan + embed in one deterministic pass.
+* `index_workspace_scan` — walk workspace, store directory/file rows, emit artifacts under `/var/lib/chaosmith/artifacts/<run_id>/`.
+* `index_workspace_embed` — chunk and embed text, upsert `vector_chunk` rows.
+* `index_workspace_all` — combine scan + embed in one deterministic pass.
+* `workspace_list` — list registered workspaces.
+* `workspace_tree` — return directory and file tree for a workspace.
+* `workspace_find_file` — find files in a workspace by exact/partial path.
+* `workspace_search_text` — find exact text within workspace files.
+* `file_search_text` — find exact text within a specific file.
+* `file_vector_search` — vector similarity search within a file.
+* `workspace_vector_search` — vector similarity search across a workspace.
+* `workspace_register` — upsert a workspace bound to an existing node.
+* `node_register`, `node_list` — manage/list nodes.
+* `read_workspace_file` — read a file slice by character range; supports hex mode for binary-safe reads.
 * `term_exec`, `term_pty` — controlled host command execution.
 
 Each call produces a **run report** (`run_id`, AT pass/fail, artifact paths, risks) per **PCS/INST/1.0**.
@@ -131,12 +141,13 @@ go run ./cmd/test_workspace_search --config etc/centralmcp.toml
 
 ## 🧮 MCP Tools Summary
 
-| Category      | Tools                                                                                                         |
-| ------------- | ------------------------------------------------------------------------------------------------------------- |
-| **Indexing**  | `index.workspace.scan`, `index.workspace.embed`, `index.workspace.all`                                        |
-| **Inventory** | `node.register`, `node.list`, `workspace.register`, `workspace.list`, `workspace.tree`, `workspace.find_file` |
-| **Search**    | `workspace.search_text`, `file.vector_search`, `workspace.vector_search`                                      |
-| **Terminal**  | `term_exec`, `term_pty`                                                                                       |
+| Category      | Tools                                                                                                                          |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Indexing**  | `index_workspace_scan`, `index_workspace_embed`, `index_workspace_all`                                                         |
+| **Inventory** | `node_register`, `node_list`, `workspace_register`, `workspace_list`, `workspace_tree`, `workspace_find_file`                 |
+| **Search**    | `workspace_search_text`, `file_search_text`, `file_vector_search`, `workspace_vector_search`                                   |
+| **Content**   | `read_workspace_file`                                                                                                          |
+| **Terminal**  | `term_exec`, `term_pty`                                                                                                        |
 
 All facts are derived from executors or SurrealDB — never hallucination.
 
