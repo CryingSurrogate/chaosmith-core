@@ -35,16 +35,19 @@ type TextMatch struct {
 }
 
 func (s *WorkspaceSearchText) Search(ctx context.Context, _ *mcp.CallToolRequest, input WorkspaceSearchTextInput) (*mcp.CallToolResult, WorkspaceSearchTextOutput, error) {
+
+	matches := make([]TextMatch, 0, input.Limit)
+
 	if s == nil || s.DB == nil {
-		return nil, WorkspaceSearchTextOutput{}, fmt.Errorf("surreal client not configured")
+		return nil, WorkspaceSearchTextOutput{Matches: matches}, fmt.Errorf("surreal client not configured")
 	}
 	wsID := strings.TrimSpace(input.WorkspaceID)
 	if wsID == "" {
-		return nil, WorkspaceSearchTextOutput{}, fmt.Errorf("workspaceId is required")
+		return nil, WorkspaceSearchTextOutput{Matches: matches}, fmt.Errorf("workspaceId is required")
 	}
 	query := input.Query
 	if strings.TrimSpace(query) == "" {
-		return nil, WorkspaceSearchTextOutput{}, fmt.Errorf("query is required")
+		return nil, WorkspaceSearchTextOutput{Matches: matches}, fmt.Errorf("query is required")
 	}
 
 	maxBytes := input.MaxFileBytes
@@ -58,12 +61,12 @@ func (s *WorkspaceSearchText) Search(ctx context.Context, _ *mcp.CallToolRequest
 
 	wsPath, err := s.lookupWorkspacePath(ctx, wsID)
 	if err != nil {
-		return nil, WorkspaceSearchTextOutput{}, err
+		return nil, WorkspaceSearchTextOutput{Matches: matches}, err
 	}
 
 	files, err := s.listWorkspaceFiles(ctx, wsID)
 	if err != nil {
-		return nil, WorkspaceSearchTextOutput{}, err
+		return nil, WorkspaceSearchTextOutput{Matches: matches}, err
 	}
 
 	caseSensitive := input.CaseSensitive
@@ -72,7 +75,6 @@ func (s *WorkspaceSearchText) Search(ctx context.Context, _ *mcp.CallToolRequest
 		searchNeedle = strings.ToLower(query)
 	}
 
-	var matches []TextMatch
 	for _, rel := range files {
 		if len(matches) >= limit {
 			break

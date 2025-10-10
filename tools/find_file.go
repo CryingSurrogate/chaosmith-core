@@ -32,16 +32,17 @@ type FindFileResult struct {
 }
 
 func (f *FindFile) Search(ctx context.Context, _ *mcp.CallToolRequest, input FindFileInput) (*mcp.CallToolResult, FindFileOutput, error) {
+	results := make([]FindFileResult, 0, input.Limit)
 	if f == nil || f.DB == nil {
-		return nil, FindFileOutput{}, fmt.Errorf("surreal client not configured")
+		return nil, FindFileOutput{Results: results}, fmt.Errorf("surreal client not configured")
 	}
 	wsID := strings.TrimSpace(input.WorkspaceID)
 	if wsID == "" {
-		return nil, FindFileOutput{}, fmt.Errorf("workspaceId is required")
+		return nil, FindFileOutput{Results: results}, fmt.Errorf("workspaceId is required")
 	}
 	q := strings.TrimSpace(input.Query)
 	if q == "" {
-		return nil, FindFileOutput{}, fmt.Errorf("query is required")
+		return nil, FindFileOutput{Results: results}, fmt.Errorf("query is required")
 	}
 
 	matchType := strings.ToLower(strings.TrimSpace(input.MatchType))
@@ -71,7 +72,7 @@ func (f *FindFile) Search(ctx context.Context, _ *mcp.CallToolRequest, input Fin
 		filter = "string::contains(relpath, $query)"
 		vars["query"] = q
 	default:
-		return nil, FindFileOutput{}, fmt.Errorf("unsupported matchType %q", matchType)
+		return nil, FindFileOutput{Results: results}, fmt.Errorf("unsupported matchType %q", matchType)
 	}
 
 	const tmpl = `
@@ -93,17 +94,11 @@ LIMIT $limit
 
 	rows, err := surreal.Query[row](ctx, f.DB, sql, vars)
 	if err != nil {
-		return nil, FindFileOutput{}, fmt.Errorf("find files: %w", err)
+		return nil, FindFileOutput{Results: results}, fmt.Errorf("find files: %w", err)
 	}
 
-	results := make([]FindFileResult, 0, len(rows))
 	for _, r := range rows {
-		results = append(results, FindFileResult{
-			RelPath: r.RelPath,
-			Lang:    r.Lang,
-			Size:    r.Size,
-			SHA:     r.SHA,
-		})
+		results = append(results, FindFileResult(r))
 	}
 
 	return nil, FindFileOutput{Results: results}, nil

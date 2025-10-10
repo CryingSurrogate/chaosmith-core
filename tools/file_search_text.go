@@ -29,25 +29,26 @@ type FileSearchTextOutput struct {
 }
 
 func (s *FileSearchText) Search(ctx context.Context, _ *mcp.CallToolRequest, input FileSearchTextInput) (*mcp.CallToolResult, FileSearchTextOutput, error) {
+	matches := make([]TextMatch, 0, input.Limit)
 	if s == nil || s.DB == nil {
-		return nil, FileSearchTextOutput{}, fmt.Errorf("surreal client not configured")
+		return nil, FileSearchTextOutput{Matches: matches}, fmt.Errorf("surreal client not configured")
 	}
 	wsID := strings.TrimSpace(input.WorkspaceID)
 	if wsID == "" {
-		return nil, FileSearchTextOutput{}, fmt.Errorf("workspaceId is required")
+		return nil, FileSearchTextOutput{Matches: matches}, fmt.Errorf("workspaceId is required")
 	}
 	rel := strings.TrimSpace(input.RelPath)
 	if rel == "" {
-		return nil, FileSearchTextOutput{}, fmt.Errorf("relpath is required")
+		return nil, FileSearchTextOutput{Matches: matches}, fmt.Errorf("relpath is required")
 	}
 	query := input.Query
 	if strings.TrimSpace(query) == "" {
-		return nil, FileSearchTextOutput{}, fmt.Errorf("query is required")
+		return nil, FileSearchTextOutput{Matches: matches}, fmt.Errorf("query is required")
 	}
 
 	fsPath, err := s.resolveFilePath(ctx, wsID, rel)
 	if err != nil {
-		return nil, FileSearchTextOutput{}, err
+		return nil, FileSearchTextOutput{Matches: matches}, err
 	}
 
 	limit := clampLimit(input.Limit, 100)
@@ -63,7 +64,7 @@ func (s *FileSearchText) Search(ctx context.Context, _ *mcp.CallToolRequest, inp
 
 	file, err := os.Open(fsPath)
 	if err != nil {
-		return nil, FileSearchTextOutput{}, fmt.Errorf("open file: %w", err)
+		return nil, FileSearchTextOutput{Matches: matches}, fmt.Errorf("open file: %w", err)
 	}
 	defer file.Close()
 
@@ -72,7 +73,7 @@ func (s *FileSearchText) Search(ctx context.Context, _ *mcp.CallToolRequest, inp
 	scanner.Buffer(buf, 2*1024*1024)
 
 	lineNo := 0
-	var matches []TextMatch
+
 	for scanner.Scan() {
 		lineNo++
 		line := scanner.Text()
@@ -92,7 +93,7 @@ func (s *FileSearchText) Search(ctx context.Context, _ *mcp.CallToolRequest, inp
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return nil, FileSearchTextOutput{}, fmt.Errorf("scan file: %w", err)
+		return nil, FileSearchTextOutput{Matches: matches}, fmt.Errorf("scan file: %w", err)
 	}
 
 	return nil, FileSearchTextOutput{Matches: matches}, nil
