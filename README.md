@@ -63,7 +63,7 @@ go build -o bin/chaosmith-mcp .
 * `workspace_vector_search` — vector similarity search across a workspace.
 * `workspace_register` — upsert a workspace bound to an existing node.
 * `node_register`, `node_list` — manage/list nodes.
-* `read_workspace_file` — read a file slice by character range; supports hex mode for binary-safe reads.
+* `workspace_read_file` — read a file slice by character range; supports hex mode for binary-safe reads.
 * `term_exec`, `term_pty` — controlled host command execution.
 
 Each call produces a **run report** (`run_id`, AT pass/fail, artifact paths, risks) per **PCS/INST/1.0**.
@@ -146,7 +146,7 @@ go run ./cmd/test_workspace_search --config etc/centralmcp.toml
 | **Indexing**  | `index_workspace_scan`, `index_workspace_embed`, `index_workspace_all`                                                         |
 | **Inventory** | `node_register`, `node_list`, `workspace_register`, `workspace_list`, `workspace_tree`, `workspace_find_file`                 |
 | **Search**    | `workspace_search_text`, `file_search_text`, `file_vector_search`, `workspace_vector_search`                                   |
-| **Content**   | `read_workspace_file`                                                                                                          |
+| **Content**   | `workspace_read_file`                                                                                                          |
 | **Terminal**  | `term_exec`, `term_pty`                                                                                                        |
 
 All facts are derived from executors or SurrealDB — never hallucination.

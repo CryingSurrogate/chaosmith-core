@@ -124,7 +124,7 @@ func main() {
 	}, wsreg.Register)
 
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "read_workspace_file",
+		Name:        "workspace_read_file",
 		Description: "Read a file span from a workspace with optional hex encoding.",
 	}, reader.Read)
 
